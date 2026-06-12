@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Test-Path *)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:8000/health\" -UseBasicParsing -TimeoutSec 5 | Select-Object StatusCode, Content)",
+      "PowerShell($backendRunning = try { $r = Invoke-WebRequest -Uri \"http://localhost:8000/health\" -UseBasicParsing -TimeoutSec 3; $r.StatusCode -eq 200 } catch { $false }; $frontendRunning = try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 3; $r.StatusCode -eq 200 } catch { $false }; Write-Host \"Backend: $backendRunning\"; Write-Host \"Frontend: $frontendRunning\")",
+      "PowerShell($backendRunning = try { \\(Invoke-WebRequest -Uri \"http://localhost:8000/health\" -UseBasicParsing -TimeoutSec 2\\).StatusCode -eq 200 } catch { $false }; $frontendRunning = try { \\(Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 2\\).StatusCode -eq 200 } catch { $false }; if \\($backendRunning\\) { Write-Host \"Backend OK\" } else { Write-Host \"Backend DOWN\" }; if \\($frontendRunning\\) { Write-Host \"Frontend OK\" } else { Write-Host \"Frontend DOWN\" })",
+      "PowerShell(Invoke-WebRequest \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5 | Select-Object StatusCode; Start-Process \"http://localhost:3000\")",
+      "PowerShell(Get-ChildItem -Path \"$env:APPDATA\\\\obsidian\" -ErrorAction SilentlyContinue | Select-Object Name; Get-ChildItem -Path \"$env:LOCALAPPDATA\\\\obsidian\" -ErrorAction SilentlyContinue | Select-Object Name)"
+    ]
+  }
+}

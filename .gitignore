@@ -1,0 +1,24 @@
+# secrets — 永远不要提交真实 key
+.env
+.env.*
+!.env.example
+
+# python
+backend/venv/
+__pycache__/
+*.pyc
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# logs & test artifacts
+*.log
+backend/evidence_audit.log
+backend/test_*.png
+
+# os / editor
+.DS_Store
+Thumbs.db

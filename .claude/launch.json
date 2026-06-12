@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "backend/venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--reload",
+        "--port",
+        "8001",
+        "--app-dir",
+        "backend"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "apple-3d-upload",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apple-3-d-upload", "run", "dev", "--", "-p", "3100"],
+      "port": 3100
+    }
+  ]
+}

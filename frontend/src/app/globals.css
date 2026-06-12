@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+/* ============================================================
+   设计 token
+   字体由 next/font 自托管注入（--font-outfit / --font-jbmono），
+   中文走系统栈，零额外字重、无国外字体源依赖。
+   ============================================================ */
+:root {
+  --background: #0a0a0a;
+  --foreground: #f8fafc;
+  --font-sans: var(--font-outfit), "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, SFMono-Regular, monospace;
+
+  --ease-spatial: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-card: 24px;
+
+  /* 状态三色组 */
+  --tone-ok: #34d399;
+  --tone-warn: #fbbf24;
+  --tone-bad: #f87171;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Lenis 官方集成样式 */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* 玻璃拟态 */
+.spatial-glass {
+  background: rgba(10, 10, 10, 0.45);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.spatial-glass-light {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 诊断网格底纹（上传区） */
+.diagnostic-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 入场淡入（供 animate-[fadeIn_...] 使用） */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 扫描光（分析覆盖层） */
+@keyframes sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+.scanner-line {
+  animation: sweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* 上传卡悬停光环 */
+.hover-glow-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-spatial);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+/* 晨昏线降级背景（reduced-motion / WebGL 不可用） */
+.terminator-fallback {
+  background:
+    radial-gradient(
+      120% 80% at 50% 115%,
+      rgba(201, 138, 75, 0.2) 0%,
+      rgba(63, 168, 160, 0.12) 30%,
+      rgba(8, 11, 16, 0) 60%
+    ),
+    linear-gradient(to top, #080b10, #06080c 50%, #040507);
+}
+
+/* 减弱动态效果：全站动画降级 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
