@@ -58,7 +58,13 @@ async def analyze(request: Request, file: UploadFile = File(...)):
 
     try:
         img = Image.open(BytesIO(contents))
-        img.verify()
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        # 智能缩放：限制最大宽高为 1024，防止超高分辨率图片在 OpenCV 运算时导致 512MB 内存爆满 (OOM)
+        img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        buffer = BytesIO()
+        img.save(buffer, format="JPEG", quality=90)
+        contents = buffer.getvalue()
     except Exception:
         raise HTTPException(400, "无法解析该图片文件")
 
