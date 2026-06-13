@@ -70,6 +70,19 @@ const EMPTY_DIMENSION: Dimension = {
 
 const scoreTone = (s: number): Tone => (s >= 0.7 ? "bad" : s >= 0.4 ? "warn" : "ok");
 
+// fallback 文案与实际状态可能矛盾（LLM 不可用时统一兜底为"未发现问题"）。
+// 根据 status 字段生成符合真实状态的描述文案。
+function resolveDescription(dim: Dimension): string {
+  const isFallback =
+    !dim.description ||
+    dim.description === "该项检查未发现明显问题。" ||
+    dim.description === "暂无数据";
+  if (!isFallback) return dim.description;
+  if (dim.status === "ANOMALOUS") return "检测到明显异常特征，已计入最终判断。";
+  if (dim.status === "SUSPICIOUS") return "检测到可疑特征，已计入最终判断。";
+  return "该项检查未发现明显问题。";
+}
+
 // 各检测维度的科普解释（折叠区内容，术语在这里保留给好奇的人）
 const getGlossaryForTab = (tab: DimensionKey) => {
   switch (tab) {
@@ -279,7 +292,7 @@ export const AuthenticityHUD: React.FC<AuthenticityHUDProps> = ({ file, result, 
                     </span>
                   </div>
                   <p className="text-xs text-white/55 leading-relaxed line-clamp-2 pl-4">
-                    {dim.description}
+                    {resolveDescription(dim)}
                   </p>
                 </div>
               );
@@ -355,7 +368,7 @@ export const AuthenticityHUD: React.FC<AuthenticityHUDProps> = ({ file, result, 
                   </span>
                 </div>
 
-                <p className="text-xs text-white/70 leading-relaxed">{dimData.description}</p>
+                <p className="text-xs text-white/70 leading-relaxed">{resolveDescription(dimData)}</p>
 
                 {dimData.suggestion && (
                   <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02]">

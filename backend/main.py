@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from config import ALLOWED_ORIGINS
+from config import ALLOWED_ORIGINS, HOST, PORT
 from routers.analyze import router as analyze_router
 
 app = FastAPI(
@@ -17,7 +17,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,5 +36,5 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8001, timeout_keep_alive=90)
+    uvicorn.run(app, host=HOST, port=PORT, timeout_keep_alive=90)
 

@@ -21,12 +21,6 @@
         "backend"
       ],
       "port": 8001
-    },
-    {
-      "name": "apple-3d-upload",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "apple-3-d-upload", "run", "dev", "--", "-p", "3100"],
-      "port": 3100
     }
   ]
 }

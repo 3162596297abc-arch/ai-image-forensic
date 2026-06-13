@@ -31,7 +31,20 @@ QWEN_API_URL = os.getenv(
 )
 QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen-vl-max")
 
-ALLOWED_ORIGINS = ["*"]
+# CORS — comma-separated allowlist (env: ALLOWED_ORIGINS).
+# Defaults to local dev frontend. Set to your real domain(s) before going public,
+# e.g. ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if o.strip()
+]
+
+# Server bind — defaults to loopback (safe by default).
+# Set HOST=0.0.0.0 only when running behind a reverse proxy / in a container.
+HOST = os.getenv("HOST", "127.0.0.1")
+PORT = int(os.getenv("PORT", "8001"))
+
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # --- Truth Engine Production Phase 1 Config ---
