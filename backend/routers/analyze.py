@@ -4,7 +4,8 @@ import asyncio
 from collections import defaultdict
 from io import BytesIO
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+import gc
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request, BackgroundTasks
 from PIL import Image
 
 from config import (
@@ -21,8 +22,8 @@ from services.logger import AuditLogger
 router = APIRouter(prefix="/api", tags=["analysis"])
 
 # --- Phase 2: High Availability Protections ---
-# 1. Concurrency Lock: Max 10 simultaneous OpenCV matrix calculations
-ANALYSIS_SEMAPHORE = asyncio.Semaphore(10)
+# 1. Concurrency Lock: Max 2 simultaneous OpenCV matrix calculations for 512MB RAM
+ANALYSIS_SEMAPHORE = asyncio.Semaphore(2)
 
 # 2. In-Memory Token Bucket Rate Limiter
 # Format: { "ip_address": [timestamp1, timestamp2, ...] }
@@ -38,6 +39,11 @@ def _check_rate_limit(request: Request):
     # Clean up old timestamps outside the window
     RATE_LIMIT_STORE[client_ip] = [ts for ts in RATE_LIMIT_STORE[client_ip] if now - ts < RATE_LIMIT_WINDOW_SEC]
     
+    # FIX: Memory leak - delete empty IP entries
+    if not RATE_LIMIT_STORE[client_ip]:
+        del RATE_LIMIT_STORE[client_ip]
+        return # if empty, they haven't exceeded the limit
+    
     if len(RATE_LIMIT_STORE[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
         AuditLogger.log_trace("SYSTEM", "RateLimitExceeded", {"ip": client_ip})
         raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试 (Too Many Requests)")
@@ -46,7 +52,7 @@ def _check_rate_limit(request: Request):
 
 
 @router.post("/analyze")
-async def analyze(request: Request, file: UploadFile = File(...)):
+async def analyze(request: Request, background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     """Upload an image and receive multi-module forensic analysis."""
     _check_rate_limit(request)
     if not file.content_type or not file.content_type.startswith("image/"):
@@ -101,6 +107,9 @@ async def analyze(request: Request, file: UploadFile = File(...)):
     report = await generate_report(analysis_id, scores, fusion_result, DEEPSEEK_API_KEY, DEEPSEEK_API_URL)
 
     AuditLogger.log_trace(analysis_id, "APIRequestComplete", {"ai_participation": fusion_result["ai_participation"]})
+
+    # Clear memory aggressively for 512MB limit
+    background_tasks.add_task(gc.collect)
 
     return {
         "analysis_id": analysis_id,
