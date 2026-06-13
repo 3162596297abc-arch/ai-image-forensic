@@ -68,7 +68,7 @@ async def analyze(request: Request, file: UploadFile = File(...)):
     # Apply global concurrency lock to prevent OOM / CPU maxing during local OpenCV operations
     async def _run_jury_with_lock():
         try:
-            async with asyncio.timeout(10.0): # 10s queue wait timeout
+            async with asyncio.timeout(80.0): # 80s wait for slow free tier CPUs
                 async with ANALYSIS_SEMAPHORE:
                     return await run_jury(analysis_id, contents)
         except TimeoutError:
