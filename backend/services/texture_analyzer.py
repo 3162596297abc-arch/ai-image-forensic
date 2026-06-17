@@ -67,9 +67,10 @@ def _analyze_fft_anomalies(gray: np.ndarray, h: int, w: int) -> float:
         if np.any(mask):
             ring_means[i] = np.mean(mag_spectrum[mask])
             
-    abnormal_spikes = int(np.sum(np.abs(np.diff(ring_means)) > 3.0))
-    # >5 spikes is highly indicative of AI upscaler artifacts
-    return min(1.0, abnormal_spikes / 10.0)
+    # Recalibrated for 1024x1024 images: downscaling creates natural frequency ripples.
+    # We require much larger spikes (8.0 instead of 3.0) and more of them (20 instead of 10)
+    abnormal_spikes = int(np.sum(np.abs(np.diff(ring_means)) > 8.0))
+    return min(1.0, abnormal_spikes / 20.0)
 
 def _analyze_edge_collapse(gray: np.ndarray) -> float:
     """Check for 'forced edge fusion' where AI fails to separate overlapping objects."""
@@ -91,9 +92,10 @@ def _analyze_edge_collapse(gray: np.ndarray) -> float:
     corner_density = corner_count / total_pixels
     
     # Highly empirical threshold for AI edge messiness
-    if corner_density > 0.05:
+    # Recalibrated for 1024x1024 images: resizing crushes details together, naturally increasing density.
+    if corner_density > 0.12:
         return 0.8
-    if corner_density > 0.03:
+    if corner_density > 0.08:
         return 0.5
     return 0.0
 
