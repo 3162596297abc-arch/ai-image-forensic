@@ -88,14 +88,18 @@ export const AnalysisOverlay: React.FC<AnalysisOverlayProps> = ({
       clearInterval(phraseTimer);
     };
 
-    promise
-      .then((result) => {
+    // 强制最少等待 2.5 秒：
+    // 防止 API 响应过快（比如缓存命中时不到 0.5 秒就返回），导致页面还没滚动到位、覆盖层就一闪而过，造成极差的视觉撕裂感
+    const minWait = new Promise((resolve) => setTimeout(resolve, 2500));
+
+    Promise.all([promise, minWait])
+      .then(([result]) => {
         if (cancelled) return;
         stopTimers();
         setProgress(100);
         setTimeout(() => {
-          if (!cancelled) onDone(result);
-        }, 350);
+          if (!cancelled) onDone(result as AnalysisResult);
+        }, 400);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
