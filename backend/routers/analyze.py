@@ -66,10 +66,11 @@ async def analyze(request: Request, background_tasks: BackgroundTasks, file: Upl
         img = Image.open(BytesIO(contents))
         if img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
-        # 智能缩放：限制最大宽高为 1024，防止超高分辨率图片在 OpenCV 运算时导致 512MB 内存爆满 (OOM)
-        img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        # 改用无损的 PNG 和平滑的 BILINEAR 插值，防止引入高频振铃效应和 JPEG 压缩伪影
+        # （这些伪影会被 FFT 误判为 AI 痕迹，导致 100% 误判率）
+        img.thumbnail((1024, 1024), Image.Resampling.BILINEAR)
         buffer = BytesIO()
-        img.save(buffer, format="JPEG", quality=90)
+        img.save(buffer, format="PNG")
         contents = buffer.getvalue()
     except Exception:
         raise HTTPException(400, "无法解析该图片文件")
