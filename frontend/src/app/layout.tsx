@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit, JetBrains_Mono } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
+import { GA_MEASUREMENT_ID } from "@/lib/analytics";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -40,6 +42,8 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <SmoothScroll>{children}</SmoothScroll>
       </body>
+      {/* GA4：官方组件，hydration 后异步加载 gtag，自动统计 page_view（含 App Router 客户端路由切换），不阻塞渲染、不影响 SEO/性能 */}
+      {GA_MEASUREMENT_ID ? <GoogleAnalytics gaId={GA_MEASUREMENT_ID} /> : null}
     </html>
   );
 }

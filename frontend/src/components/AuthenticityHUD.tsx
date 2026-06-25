@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ScanEye, Search } from "lucide-react";
+import { Activity, AlertTriangle, ScanEye, Search, Share2 } from "lucide-react";
 import { motion, AnimatePresence, animate } from "framer-motion";
 import { AlertBanner } from "./AlertBanner";
 import Button from "./Button";
 import { TIER_LABEL, tierOf } from "@/lib/types";
 import type { AnalysisResult, Dimension, DimensionKey, Tone } from "@/lib/types";
+import { trackShareResult } from "@/lib/analytics";
 
 interface AuthenticityHUDProps {
   file: File;
@@ -124,12 +125,33 @@ export const AuthenticityHUD: React.FC<AuthenticityHUDProps> = ({ file, result, 
   const [showDetail, setShowDetail] = useState(false);
   const [display, setDisplay] = useState(0);
   const [resolved, setResolved] = useState(false);
+  const [shareLabel, setShareLabel] = useState("分享结果");
 
   const tier = tierOf(result);
   const verdict = TIER_LABEL[tier];
   const tone = verdict.tone;
   const probability = result.scores?.ai_participation ?? 0;
   const timestamp = useMemo(() => new Date().toLocaleTimeString(), []);
+
+  // 分享结果：优先调用系统原生分享（移动端），否则回退到复制链接（桌面端）。
+  // 仅在分享/复制真正成功时上报 share_result，用户取消不计入。
+  const handleShare = async () => {
+    const summary = `图像真实性检测结论：${verdict.text}（AI 参与概率 ${(probability * 100).toFixed(1)}%）`;
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title: "图像真实性检测结果", text: summary, url });
+        trackShareResult({ tier, method: "web_share" });
+      } else if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${summary} ${url}`.trim());
+        trackShareResult({ tier, method: "clipboard" });
+        setShareLabel("已复制链接");
+        setTimeout(() => setShareLabel("分享结果"), 2000);
+      }
+    } catch {
+      // 用户取消分享（AbortError）等情况：静默忽略，不计事件
+    }
+  };
 
   // 关键发现：可疑程度最高的三个维度（两层结构的第一层）
   const findings = useMemo(() => {
@@ -224,9 +246,20 @@ export const AuthenticityHUD: React.FC<AuthenticityHUDProps> = ({ file, result, 
               {display.toFixed(1)}%
             </span>
           </div>
-          <Button variant="secondary" onClick={onReset} className="px-4 py-1.5 text-xs">
-            重新检测
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="tertiary"
+              withArrow={false}
+              onClick={handleShare}
+              className="px-4 py-1.5 text-xs inline-flex items-center gap-1.5"
+            >
+              <Share2 size={13} strokeWidth={1.6} />
+              {shareLabel}
+            </Button>
+            <Button variant="secondary" onClick={onReset} className="px-4 py-1.5 text-xs">
+              重新检测
+            </Button>
+          </div>
         </div>
       </div>
 

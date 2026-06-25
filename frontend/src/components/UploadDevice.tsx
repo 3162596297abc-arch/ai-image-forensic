@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { checkHealth, validateFile } from "@/lib/api";
+import { trackUploadClick } from "@/lib/analytics";
 
 interface UploadDeviceProps {
   onUpload: (file: File) => void;
@@ -104,6 +105,7 @@ export const UploadDevice: React.FC<UploadDeviceProps> = ({ onUpload, disabled =
 
       {/* 拖拽 / 点击上传区 */}
       <label
+        onClick={() => trackUploadClick({ source: "upload_device" })}
         className={`relative flex flex-col items-center justify-center flex-1 my-4 rounded-2xl cursor-pointer z-10 overflow-hidden
           border border-dashed transition-colors duration-300 diagnostic-grid
           ${isDragActive ? "border-white/40 bg-white/[0.04]" : "border-white/10 bg-white/[0.01] hover:bg-white/[0.02]"}

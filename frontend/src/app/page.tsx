@@ -17,6 +17,12 @@ import ScrollDepthIndicator from "@/components/ScrollDepthIndicator";
 import Button from "@/components/Button";
 import { analyzeImage, checkHealth, validateFile } from "@/lib/api";
 import type { AnalysisResult } from "@/lib/types";
+import {
+  trackUploadClick,
+  trackUploadSuccess,
+  trackAnalysisStart,
+  trackAnalysisFinish,
+} from "@/lib/analytics";
 
 // 页面状态机：分析失败的呈现由 AnalysisOverlay 内部处理（页面保持 analyzing）
 type Phase =
@@ -61,6 +67,10 @@ export default function Home() {
 
   // 上传即发请求（请求与滚动并行，无人为延迟）
   const startAnalysis = useCallback((file: File) => {
+    // 埋点：所有上传入口（Hero / 检测区 / 浮动按钮）的合规文件都汇聚到此，
+    // 是统计「上传成功」和「分析开始」的唯一收口，天然避免重复。
+    trackUploadSuccess({ file_type: file.type, file_size_kb: Math.round(file.size / 1024) });
+    trackAnalysisStart({ file_type: file.type });
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -71,6 +81,11 @@ export default function Home() {
   }, []);
 
   const handleDone = useCallback((result: AnalysisResult) => {
+    // 埋点：分析完成（携带判定等级与 AI 参与概率，便于在 GA4 中按结论维度分析）
+    trackAnalysisFinish({
+      tier: result.jury?.tier ?? result.report?.jury?.tier,
+      ai_participation: Number((result.scores?.ai_participation ?? 0).toFixed(4)),
+    });
     setPhase((prev) =>
       prev.status === "analyzing" ? { status: "success", file: prev.file, result } : prev
     );
@@ -256,7 +271,13 @@ export default function Home() {
           </h2>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-            <Button variant="primary" onClick={() => fileInputRef.current?.click()}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                trackUploadClick({ source: "hero" });
+                fileInputRef.current?.click();
+              }}
+            >
               上传图片检测
             </Button>
             <Button variant="secondary" onClick={() => scrollToSection("#exhibitions")}>
