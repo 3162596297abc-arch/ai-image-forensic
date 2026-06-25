@@ -39,10 +39,10 @@ def _check_rate_limit(request: Request):
     # Clean up old timestamps outside the window
     RATE_LIMIT_STORE[client_ip] = [ts for ts in RATE_LIMIT_STORE[client_ip] if now - ts < RATE_LIMIT_WINDOW_SEC]
     
-    # FIX: Memory leak - delete empty IP entries
+    # 内存泄漏防护：列表为空则删除该 IP 键（避免字典随陌生 IP 无限增长）
     if not RATE_LIMIT_STORE[client_ip]:
         del RATE_LIMIT_STORE[client_ip]
-        return # if empty, they haven't exceeded the limit
+        # 不能在此 return：必须继续向下记录本次时间戳，否则首个请求永不入账、限流彻底失效
     
     if len(RATE_LIMIT_STORE[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
         AuditLogger.log_trace("SYSTEM", "RateLimitExceeded", {"ip": client_ip})
