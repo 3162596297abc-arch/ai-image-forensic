@@ -65,3 +65,37 @@ CONFLICT_THRESHOLD = float(os.getenv("CONFLICT_THRESHOLD", "0.30"))
 # ELA Additive Penalty
 ELA_TAMPERING_THRESHOLD = float(os.getenv("ELA_TAMPERING_THRESHOLD", "0.35"))
 ELA_PENALTY_WEIGHT = float(os.getenv("ELA_PENALTY_WEIGHT", "0.15"))
+
+# ============================================================
+# Truth Engine v4 — 算法调优参数（全部可经环境变量覆盖，便于回归后微调）
+# ============================================================
+
+# --- 预处理 ---
+# 给「怕压缩/缩放伪影」的模块（FFT/边缘）喂降采样版；
+# 给「需要原始物理信号」的模块（CMOS底噪/ELA/栅格/元数据）喂原图中心裁块。
+PROC_MAX_SIDE = int(os.getenv("PROC_MAX_SIDE", "1024"))   # 降采样视图最长边
+RAW_MAX_SIDE = int(os.getenv("RAW_MAX_SIDE", "1024"))     # 原始信号视图：原生中心裁块上限（裁剪不重采样，保噪声）
+
+# --- FFT 频域异常（痛点1：抗压缩误判）---
+# 用「相对显著性」(MAD) 检测窄带周期峰；压缩的平滑衰减不会触发。
+FFT_SPIKE_MAD_K = float(os.getenv("FFT_SPIKE_MAD_K", "5.0"))   # 尖峰需高于基线 K 倍 MAD
+FFT_SCORE_GAIN = float(os.getenv("FFT_SCORE_GAIN", "12.0"))    # 尖峰占比 → 分数 的增益
+
+# --- 边缘崩塌（痛点1：按边缘密度归一化，消除"细节多=误判"）---
+EDGE_CORNER_PER_EDGE_THRESH = float(os.getenv("EDGE_CORNER_PER_EDGE_THRESH", "0.55"))
+
+# --- 栅格周期性自相关（痛点2：抗压缩失效仍能抓扩散/GAN上采样栅格）---
+GRID_PERIODICITY_FLOOR = float(os.getenv("GRID_PERIODICITY_FLOOR", "0.06"))
+GRID_PERIODICITY_SPAN = float(os.getenv("GRID_PERIODICITY_SPAN", "0.25"))
+
+# --- CMOS 底噪（痛点1：软化，避免降噪/缩放后的真图被强判）---
+CMOS_NOISE_LOW = float(os.getenv("CMOS_NOISE_LOW", "0.6"))    # 低于此视为"异常平滑"
+CMOS_NOISE_HIGH = float(os.getenv("CMOS_NOISE_HIGH", "12.0")) # 高于此视为"明显有噪=真"
+
+# --- 局部篡改（痛点3：块级噪声异常 + 空间聚集）---
+LOCAL_TAMPER_BLOCK = int(os.getenv("LOCAL_TAMPER_BLOCK", "32"))       # 网格块边长(px)
+LOCAL_TAMPER_Z = float(os.getenv("LOCAL_TAMPER_Z", "3.5"))           # 稳健 z 分数离群阈值
+LOCAL_TAMPER_MIN_REGION = int(os.getenv("LOCAL_TAMPER_MIN_REGION", "4"))  # 最小连通异常块数（防纹理散点）
+LOCAL_TAMPER_GAIN = float(os.getenv("LOCAL_TAMPER_GAIN", "6.0"))     # 异常区占比 → 分数 的增益
+LOCAL_TAMPER_THRESHOLD = float(os.getenv("LOCAL_TAMPER_THRESHOLD", "0.40"))  # 触发加性扣分阈值（留余量避开颗粒噪声）
+LOCAL_TAMPER_PENALTY = float(os.getenv("LOCAL_TAMPER_PENALTY", "0.45"))      # 半真半假加性扣分上限

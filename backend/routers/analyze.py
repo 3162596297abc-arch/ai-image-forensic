@@ -8,6 +8,7 @@ import gc
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request, BackgroundTasks
 from PIL import Image
 
+import config
 from config import (
     MAX_IMAGE_SIZE,
     DEEPSEEK_API_KEY, DEEPSEEK_API_URL,
@@ -66,9 +67,26 @@ async def analyze(request: Request, background_tasks: BackgroundTasks, file: Upl
         img = Image.open(BytesIO(contents))
         if img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
-        # 改用无损的 PNG 和平滑的 BILINEAR 插值，防止引入高频振铃效应和 JPEG 压缩伪影
-        # （这些伪影会被 FFT 误判为 AI 痕迹，导致 100% 误判率）
-        img.thumbnail((1024, 1024), Image.Resampling.BILINEAR)
+
+        # --- 预处理解耦（v4）：产出两份输入 ---
+        # raw_bytes：原生信号视图（保留 CMOS 底噪 / JPEG 压缩历史 / EXIF），
+        #   供 CMOS、ELA、栅格周期、局部篡改、元数据等模块使用。
+        #   大图取原生中心裁块（只裁不缩放，内存受限）；小图直接用原始字节（连 EXIF 一起保住）。
+        W, H = img.size
+        if max(W, H) > config.RAW_MAX_SIDE:
+            s = config.RAW_MAX_SIDE
+            left = max(0, (W - s) // 2)
+            top = max(0, (H - s) // 2)
+            raw_crop = img.crop((left, top, min(W, left + s), min(H, top + s)))
+            rb = BytesIO()
+            raw_crop.save(rb, format="PNG")
+            raw_bytes = rb.getvalue()
+        else:
+            raw_bytes = contents
+
+        # contents（proc）：降采样视图，抗压缩/缩放伪影，供 FFT/边缘等模块使用。
+        # 用无损 PNG + 平滑插值，防止高频振铃/JPEG 伪影被 FFT 误判。
+        img.thumbnail((config.PROC_MAX_SIDE, config.PROC_MAX_SIDE), Image.Resampling.BILINEAR)
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         contents = buffer.getvalue()
@@ -83,7 +101,7 @@ async def analyze(request: Request, background_tasks: BackgroundTasks, file: Upl
         try:
             async with asyncio.timeout(80.0): # 80s wait for slow free tier CPUs
                 async with ANALYSIS_SEMAPHORE:
-                    return await run_jury(analysis_id, contents)
+                    return await run_jury(analysis_id, contents, raw_bytes)
         except TimeoutError:
             AuditLogger.log_error(analysis_id, "ConcurrencyQueueTimeout", "Too many concurrent requests, system rejected request.")
             raise HTTPException(503, "服务器当前负载过高，请稍后重试 (Service Unavailable)")
