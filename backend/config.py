@@ -32,11 +32,16 @@ QWEN_API_URL = os.getenv(
 QWEN_MODEL = os.getenv("QWEN_MODEL", "qwen-vl-max")
 
 # CORS — comma-separated allowlist (env: ALLOWED_ORIGINS).
-# Defaults to local dev frontend. Set to your real domain(s) before going public,
-# e.g. ALLOWED_ORIGINS=https://app.example.com,https://www.example.com
+# 默认只允许正式前端域名 + 本地开发，已是收紧状态（非 "*"）。
+# 注意：Origin 头不含结尾斜杠，故域名不要写 "/"。
+# 需要新增域名时设置环境变量覆盖，例如：
+#   ALLOWED_ORIGINS=https://ai-image-forensic.vercel.app,https://your-custom-domain.com
 ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://ai-image-forensic.vercel.app,http://localhost:3000",
+    ).split(",")
     if o.strip()
 ]
 
